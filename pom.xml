@@ -218,6 +218,7 @@
     <spark.test.home>${session.executionRootDirectory}</spark.test.home>
 
     <CodeCacheSize>512m</CodeCacheSize>
+    <extraScalaTestArgs></extraScalaTestArgs>
   </properties>
   <repositories>
     <repository>
@@ -2682,7 +2683,6 @@
         </plugins>
       </build>
     </profile>
-
     <!--
      This is a profile to enable the use of the ASF snapshot and staging repositories
      during a build. It is useful when testing againt nightly or RC releases of dependencies.
