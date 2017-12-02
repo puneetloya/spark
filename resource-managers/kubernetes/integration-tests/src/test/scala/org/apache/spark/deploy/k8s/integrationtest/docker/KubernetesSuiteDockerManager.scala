@@ -23,7 +23,7 @@ import java.nio.file.Paths
 import com.google.common.base.Charsets
 import com.google.common.io.Files
 import com.spotify.docker.client.{DefaultDockerClient, DockerCertificates, LoggingBuildHandler}
-import com.spotify.docker.client.DockerClient.{ListContainersParam, RemoveContainerParam}
+import com.spotify.docker.client.DockerClient.{ListContainersParam, ListImagesParam, RemoveContainerParam}
 import com.spotify.docker.client.messages.Container
 import org.apache.http.client.utils.URIBuilder
 import org.scalatest.concurrent.{Eventually, PatienceConfiguration}
@@ -145,8 +145,13 @@ private[spark] class KubernetesSuiteDockerManager(
    * Forces all containers running an image with the configured tag to halt and be removed.
    */
   private def removeRunningContainers(): Unit = {
+    val imageIds = dockerClient.listImages(ListImagesParam.allImages())
+        .asScala
+        .filter(image => image.repoTags().asScala.exists(_.endsWith(s":$dockerTag")))
+        .map(_.id())
+        .toSet
     Eventually.eventually(KubernetesSuite.TIMEOUT, KubernetesSuite.INTERVAL) {
-      val runningContainersWithImageTag = stopRunningContainers()
+      val runningContainersWithImageTag = stopRunningContainers(imageIds)
       require(
           runningContainersWithImageTag.isEmpty,
           s"${runningContainersWithImageTag.size} containers found still running" +
@@ -154,21 +159,21 @@ private[spark] class KubernetesSuiteDockerManager(
     }
     dockerClient.listContainers(ListContainersParam.allContainers())
         .asScala
-        .filter(containerHasImageWithTag(_))
+        .filter(container => imageIds.contains(container.imageId()))
         .foreach(container => dockerClient.removeContainer(
             container.id(), RemoveContainerParam.forceKill(true)))
     Eventually.eventually(KubernetesSuite.TIMEOUT, KubernetesSuite.INTERVAL) {
       val containersWithImageTag = dockerClient.listContainers(ListContainersParam.allContainers())
         .asScala
-        .filter(containerHasImageWithTag(_))
+        .filter(container => imageIds.contains(container.imageId()))
       require(containersWithImageTag.isEmpty, s"${containersWithImageTag.size} containers still" +
         s" found with image tag $dockerTag.")
     }
 
   }
 
-  private def stopRunningContainers(): Iterable[Container] = {
-    val runningContainersWithImageTag = getRunningContainersWithImageTag()
+  private def stopRunningContainers(imageIds: Set[String]): Iterable[Container] = {
+    val runningContainersWithImageTag = getRunningContainersWithImageIds(imageIds)
     if (runningContainersWithImageTag.nonEmpty) {
       log.info(s"Found ${runningContainersWithImageTag.size} containers running with" +
         s" an image with the tag $dockerTag. Attempting to remove these containers," +
@@ -180,17 +185,13 @@ private[spark] class KubernetesSuiteDockerManager(
     runningContainersWithImageTag
   }
 
-  private def getRunningContainersWithImageTag(): Iterable[Container] = {
+  private def getRunningContainersWithImageIds(imageIds: Set[String]): Iterable[Container] = {
     dockerClient
         .listContainers(
             ListContainersParam.allContainers(),
             ListContainersParam.withStatusRunning())
         .asScala
-        .filter(containerHasImageWithTag(_))
-  }
-
-  private def containerHasImageWithTag(container: Container): Boolean = {
-    container.image().endsWith(s":$dockerTag")
+        .filter(container => imageIds.contains(container.imageId()))
   }
 
   private def deleteImage(name: String): Unit = {
