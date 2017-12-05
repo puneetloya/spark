@@ -37,22 +37,10 @@ private[spark] object Minikube extends Logging {
 
   def getMinikubeStatus: MinikubeStatus.Value = synchronized {
     val statusString = executeMinikube("status")
-<<<<<<< HEAD
-      .filter(line => line.contains("minikubeVM: ") || line.contains("minikube"))
-||||||| merged common ancestors
-      .filter(_.contains("minikubeVM: "))
-=======
-      .filter(_.contains("minikube: "))
->>>>>>> origin/branch-2.2-kubernetes
+      .filter(line => line.contains("minikubeVM: ") || line.contains("minikube:"))
       .head
-<<<<<<< HEAD
       .replaceFirst("minikubeVM: ", "")
       .replaceFirst("minikube: ", "")
-||||||| merged common ancestors
-      .replaceFirst("minikubeVM: ", "")
-=======
-      .replaceFirst("minikube: ", "")
->>>>>>> origin/branch-2.2-kubernetes
     MinikubeStatus.unapply(statusString)
         .getOrElse(throw new IllegalStateException(s"Unknown status $statusString"))
   }
@@ -65,28 +53,6 @@ private[spark] object Minikube extends Logging {
         .toMap
   }
 
-<<<<<<< HEAD
-||||||| merged common ancestors
-  def deleteMinikube(): Unit = synchronized {
-    assert(MINIKUBE_EXECUTABLE_DEST.exists, EXPECTED_DOWNLOADED_MINIKUBE_MESSAGE)
-    if (getMinikubeStatus != MinikubeStatus.DOES_NOT_EXIST) {
-      executeMinikube("delete")
-    } else {
-      logInfo("Minikube was already not running.")
-    }
-  }
-
-=======
-  def deleteMinikube(): Unit = synchronized {
-    assert(MINIKUBE_EXECUTABLE_DEST.exists, EXPECTED_DOWNLOADED_MINIKUBE_MESSAGE)
-    if (getMinikubeStatus != MinikubeStatus.NONE) {
-      executeMinikube("delete")
-    } else {
-      logInfo("Minikube was already not running.")
-    }
-  }
-
->>>>>>> origin/branch-2.2-kubernetes
   def getKubernetesClient: DefaultKubernetesClient = synchronized {
     val kubernetesMaster = s"https://${getMinikubeIp}:8443"
     val userHome = System.getProperty("user.home")
