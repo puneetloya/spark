@@ -42,8 +42,10 @@ private[spark] class KubernetesSuiteDockerManager(
   private val BASE_DOCKER_FILE = "dockerfiles/spark-base/Dockerfile"
   private val DRIVER_DOCKER_FILE = "dockerfiles/driver/Dockerfile"
   private val DRIVERPY_DOCKER_FILE = "dockerfiles/driver-py/Dockerfile"
+  private val DRIVERR_DOCKER_FILE = "dockerfiles/driver-r/Dockerfile"
   private val EXECUTOR_DOCKER_FILE = "dockerfiles/executor/Dockerfile"
   private val EXECUTORPY_DOCKER_FILE = "dockerfiles/executor-py/Dockerfile"
+  private val EXECUTORR_DOCKER_FILE = "dockerfiles/executor-r/Dockerfile"
   private val SHUFFLE_SERVICE_DOCKER_FILE = "dockerfiles/shuffle-service/Dockerfile"
   private val INIT_CONTAINER_DOCKER_FILE = "dockerfiles/init-container/Dockerfile"
   private val STAGING_SERVER_DOCKER_FILE = "dockerfiles/resource-staging-server/Dockerfile"
@@ -91,8 +93,10 @@ private[spark] class KubernetesSuiteDockerManager(
     buildImage("spark-base", BASE_DOCKER_FILE)
     buildImage("spark-driver", DRIVER_DOCKER_FILE)
     buildImage("spark-driver-py", DRIVERPY_DOCKER_FILE)
+    buildImage("spark-driver-r", DRIVERR_DOCKER_FILE)
     buildImage("spark-executor", EXECUTOR_DOCKER_FILE)
     buildImage("spark-executor-py", EXECUTORPY_DOCKER_FILE)
+    buildImage("spark-executor-r", EXECUTORR_DOCKER_FILE)
     buildImage("spark-shuffle", SHUFFLE_SERVICE_DOCKER_FILE)
     buildImage("spark-resource-staging-server", STAGING_SERVER_DOCKER_FILE)
     buildImage("spark-init", INIT_CONTAINER_DOCKER_FILE)
@@ -103,8 +107,10 @@ private[spark] class KubernetesSuiteDockerManager(
     removeRunningContainers()
     deleteImage("spark-driver")
     deleteImage("spark-driver-py")
+    deleteImage("spark-driver-r")
     deleteImage("spark-executor")
     deleteImage("spark-executor-py")
+    deleteImage("spark-executor-r")
     deleteImage("spark-shuffle")
     deleteImage("spark-resource-staging-server")
     deleteImage("spark-init")

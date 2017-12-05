@@ -20,4 +20,6 @@ private[spark] sealed trait MainAppResource
 
 private[spark] case class PythonMainAppResource(primaryPyFile: String) extends MainAppResource
 
+private[spark] case class RMainAppResource(primaryRFile: String) extends MainAppResource
+
 private[spark] case class JavaMainAppResource(primaryResource: String) extends MainAppResource

@@ -29,7 +29,7 @@ import org.apache.spark.internal.Logging
 import org.apache.spark.network.netty.SparkTransportConf
 import org.apache.spark.network.shuffle.kubernetes.KubernetesExternalShuffleClientImpl
 import org.apache.spark.scheduler.{ExternalClusterManager, SchedulerBackend, TaskScheduler, TaskSchedulerImpl}
-import org.apache.spark.util.{ThreadUtils, Utils}
+import org.apache.spark.util.ThreadUtils
 
 private[spark] class KubernetesClusterManager extends ExternalClusterManager with Logging {
 
@@ -78,7 +78,9 @@ private[spark] class KubernetesClusterManager extends ExternalClusterManager wit
         sparkConf.get(INIT_CONTAINER_FILES_DOWNLOAD_LOCATION),
         sparkConf.get(INIT_CONTAINER_MOUNT_TIMEOUT),
         configMap,
-        configMapKey)
+        configMapKey,
+        SPARK_POD_EXECUTOR_ROLE,
+        sparkConf)
     }
 
     val mountSmallFilesBootstrap = for {
@@ -91,6 +93,11 @@ private[spark] class KubernetesClusterManager extends ExternalClusterManager wit
     val executorSecretNamesToMountPaths = ConfigurationUtils.parsePrefixedKeyValuePairs(sparkConf,
       KUBERNETES_EXECUTOR_SECRETS_PREFIX, "executor secrets")
     val mountSecretBootstrap = if (executorSecretNamesToMountPaths.nonEmpty) {
+      Some(new MountSecretsBootstrapImpl(executorSecretNamesToMountPaths))
+    } else {
+      None
+    }
+    val executorInitContainerMountSecretsBootstrap = if (executorSecretNamesToMountPaths.nonEmpty) {
       Some(new MountSecretsBootstrapImpl(executorSecretNamesToMountPaths))
     } else {
       None
@@ -113,25 +120,29 @@ private[spark] class KubernetesClusterManager extends ExternalClusterManager wit
         Some(new File(Config.KUBERNETES_SERVICE_ACCOUNT_TOKEN_PATH)),
         Some(new File(Config.KUBERNETES_SERVICE_ACCOUNT_CA_CRT_PATH)))
 
-    val kubernetesShuffleManager = if (Utils.isDynamicAllocationEnabled(sparkConf)) {
+    val kubernetesShuffleManager = if (sparkConf.get(
+        org.apache.spark.internal.config.SHUFFLE_SERVICE_ENABLED)) {
       val kubernetesExternalShuffleClient = new KubernetesExternalShuffleClientImpl(
-        SparkTransportConf.fromSparkConf(sparkConf, "shuffle"),
-        sc.env.securityManager,
-        sc.env.securityManager.isAuthenticationEnabled())
+          SparkTransportConf.fromSparkConf(sparkConf, "shuffle"),
+          sc.env.securityManager,
+          sc.env.securityManager.isAuthenticationEnabled())
       Some(new KubernetesExternalShuffleManagerImpl(
-        sparkConf,
-        kubernetesClient,
-        kubernetesExternalShuffleClient))
+          sparkConf,
+          kubernetesClient,
+          kubernetesExternalShuffleClient))
     } else None
 
+    val executorLocalDirVolumeProvider = new ExecutorLocalDirVolumeProviderImpl(
+        sparkConf, kubernetesShuffleManager)
     val executorPodFactory = new ExecutorPodFactoryImpl(
         sparkConf,
         NodeAffinityExecutorPodModifierImpl,
         mountSecretBootstrap,
         mountSmallFilesBootstrap,
         executorInitContainerBootstrap,
+        executorInitContainerMountSecretsBootstrap,
         executorInitContainerSecretVolumePlugin,
-        kubernetesShuffleManager)
+        executorLocalDirVolumeProvider)
     val allocatorExecutor = ThreadUtils
         .newDaemonSingleThreadScheduledExecutor("kubernetes-pod-allocator")
     val requestExecutorsService = ThreadUtils.newDaemonCachedThreadPool(

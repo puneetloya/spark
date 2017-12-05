@@ -18,7 +18,7 @@ package org.apache.spark.deploy.k8s.submit
 
 import org.apache.spark.{SparkConf, SparkFunSuite}
 import org.apache.spark.deploy.k8s.config._
-import org.apache.spark.deploy.k8s.submit.submitsteps.{BaseDriverConfigurationStep, DependencyResolutionStep, DriverAddressConfigurationStep, DriverConfigurationStep, DriverKubernetesCredentialsStep, InitContainerBootstrapStep, MountSecretsStep, MountSmallLocalFilesStep, PythonStep}
+import org.apache.spark.deploy.k8s.submit.submitsteps.{BaseDriverConfigurationStep, DependencyResolutionStep, DriverConfigurationStep, DriverKubernetesCredentialsStep, DriverServiceBootstrapStep, InitContainerBootstrapStep, LocalDirectoryMountConfigurationStep, MountSecretsStep, MountSmallLocalFilesStep, PythonStep, RStep}
 
 private[spark] class DriverConfigurationStepsOrchestratorSuite extends SparkFunSuite {
 
@@ -45,14 +45,15 @@ private[spark] class DriverConfigurationStepsOrchestratorSuite extends SparkFunS
         APP_NAME,
         MAIN_CLASS,
         APP_ARGS,
-        ADDITIONAL_PYTHON_FILES,
+        Seq.empty[String],
         sparkConf)
     validateStepTypes(
         orchestrator,
         classOf[BaseDriverConfigurationStep],
-        classOf[DriverAddressConfigurationStep],
+        classOf[DriverServiceBootstrapStep],
         classOf[DriverKubernetesCredentialsStep],
-        classOf[DependencyResolutionStep])
+        classOf[DependencyResolutionStep],
+        classOf[LocalDirectoryMountConfigurationStep])
   }
 
   test("Submission steps with an init-container.") {
@@ -68,14 +69,15 @@ private[spark] class DriverConfigurationStepsOrchestratorSuite extends SparkFunS
         APP_NAME,
         MAIN_CLASS,
         APP_ARGS,
-        ADDITIONAL_PYTHON_FILES,
+        Seq.empty[String],
         sparkConf)
     validateStepTypes(
         orchestrator,
         classOf[BaseDriverConfigurationStep],
-        classOf[DriverAddressConfigurationStep],
+        classOf[DriverServiceBootstrapStep],
         classOf[DriverKubernetesCredentialsStep],
         classOf[DependencyResolutionStep],
+        classOf[LocalDirectoryMountConfigurationStep],
         classOf[InitContainerBootstrapStep])
   }
 
@@ -83,25 +85,50 @@ private[spark] class DriverConfigurationStepsOrchestratorSuite extends SparkFunS
     val sparkConf = new SparkConf(false)
     val mainAppResource = PythonMainAppResource("local:///var/apps/python/main.py")
     val orchestrator = new DriverConfigurationStepsOrchestrator(
-        NAMESPACE,
-        APP_ID,
-        LAUNCH_TIME,
-        mainAppResource,
-        APP_NAME,
-        MAIN_CLASS,
-        APP_ARGS,
-        ADDITIONAL_PYTHON_FILES,
-        sparkConf)
+      NAMESPACE,
+      APP_ID,
+      LAUNCH_TIME,
+      mainAppResource,
+      APP_NAME,
+      MAIN_CLASS,
+      APP_ARGS,
+      ADDITIONAL_PYTHON_FILES,
+      sparkConf)
     validateStepTypes(
         orchestrator,
         classOf[BaseDriverConfigurationStep],
-        classOf[DriverAddressConfigurationStep],
+        classOf[DriverServiceBootstrapStep],
         classOf[DriverKubernetesCredentialsStep],
         classOf[DependencyResolutionStep],
+        classOf[LocalDirectoryMountConfigurationStep],
         classOf[PythonStep])
   }
 
-  test("Only local files without a resource staging server.") {
+  test("Submission steps with R file.") {
+    val sparkConf = new SparkConf(false)
+    val mainAppResource = RMainAppResource("local:///var/apps/r/main.R")
+    val orchestrator = new DriverConfigurationStepsOrchestrator(
+      NAMESPACE,
+      APP_ID,
+      LAUNCH_TIME,
+      mainAppResource,
+      APP_NAME,
+      MAIN_CLASS,
+      APP_ARGS,
+      Seq.empty[String],
+      sparkConf)
+    validateStepTypes(
+      orchestrator,
+      classOf[BaseDriverConfigurationStep],
+      classOf[DriverServiceBootstrapStep],
+      classOf[DriverKubernetesCredentialsStep],
+      classOf[DependencyResolutionStep],
+      classOf[LocalDirectoryMountConfigurationStep],
+      classOf[RStep])
+  }
+
+
+  test("Only submitter local files without a resource staging server.") {
     val sparkConf = new SparkConf(false).set("spark.files", "/var/spark/file1.txt")
     val mainAppResource = JavaMainAppResource("local:///var/apps/jars/main.jar")
     val orchestrator = new DriverConfigurationStepsOrchestrator(
@@ -112,15 +139,40 @@ private[spark] class DriverConfigurationStepsOrchestratorSuite extends SparkFunS
         APP_NAME,
         MAIN_CLASS,
         APP_ARGS,
-        ADDITIONAL_PYTHON_FILES,
+        Seq.empty[String],
         sparkConf)
     validateStepTypes(
         orchestrator,
         classOf[BaseDriverConfigurationStep],
-        classOf[DriverAddressConfigurationStep],
+        classOf[DriverServiceBootstrapStep],
         classOf[DriverKubernetesCredentialsStep],
         classOf[DependencyResolutionStep],
+        classOf[LocalDirectoryMountConfigurationStep],
         classOf[MountSmallLocalFilesStep])
+  }
+
+  test("No submitter local files without a resource staging server") {
+    val sparkConf = new SparkConf(false).set(
+      "spark.files", "hdfs://localhost:9000/var/foo.txt,https://localhost:8080/var/bar.txt")
+    val mainAppResource = JavaMainAppResource("local:///var/apps/jars/main.jar")
+    val orchestrator = new DriverConfigurationStepsOrchestrator(
+      NAMESPACE,
+      APP_ID,
+      LAUNCH_TIME,
+      mainAppResource,
+      APP_NAME,
+      MAIN_CLASS,
+      APP_ARGS,
+      Seq.empty[String],
+      sparkConf)
+    validateStepTypes(
+      orchestrator,
+      classOf[BaseDriverConfigurationStep],
+      classOf[DriverServiceBootstrapStep],
+      classOf[DriverKubernetesCredentialsStep],
+      classOf[DependencyResolutionStep],
+      classOf[LocalDirectoryMountConfigurationStep],
+      classOf[InitContainerBootstrapStep])
   }
 
   test("Submission steps with driver secrets to mount") {
@@ -136,14 +188,15 @@ private[spark] class DriverConfigurationStepsOrchestratorSuite extends SparkFunS
       APP_NAME,
       MAIN_CLASS,
       APP_ARGS,
-      ADDITIONAL_PYTHON_FILES,
+      Seq.empty[String],
       sparkConf)
     validateStepTypes(
       orchestrator,
       classOf[BaseDriverConfigurationStep],
-      classOf[DriverAddressConfigurationStep],
+      classOf[DriverServiceBootstrapStep],
       classOf[DriverKubernetesCredentialsStep],
       classOf[DependencyResolutionStep],
+      classOf[LocalDirectoryMountConfigurationStep],
       classOf[MountSecretsStep])
   }
 
