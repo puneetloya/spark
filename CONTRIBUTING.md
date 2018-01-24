@@ -1,4 +1,4 @@
-## Contributing to Spark
+## Contributing to Spark on Kube
 
 *Before opening a pull request*, review the 
 [Contributing to Spark guide](http://spark.apache.org/contributing.html). 
