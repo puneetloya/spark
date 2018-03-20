@@ -20,13 +20,14 @@ import scala.collection.JavaConverters._
 
 import io.fabric8.kubernetes.api.model.{HasMetadata, ServiceBuilder}
 
-import org.apache.spark.deploy.k8s.{KubernetesConf, SparkPod}
+import org.apache.spark.deploy.k8s.{KubernetesConf, KubernetesDriverSpecificConf, SparkPod}
 import org.apache.spark.deploy.k8s.Constants._
 import org.apache.spark.internal.Logging
 import org.apache.spark.util.{Clock, SystemClock}
 
 private[k8s] class DriverServiceFeatureStep(
-  kubernetesConf: KubernetesConf[_], clock: Clock = new SystemClock)
+  kubernetesConf: KubernetesConf[KubernetesDriverSpecificConf],
+  clock: Clock = new SystemClock)
   extends KubernetesFeatureConfigStep with Logging {
   import DriverServiceFeatureStep._
 
@@ -71,7 +72,7 @@ private[k8s] class DriverServiceFeatureStep(
         .endMetadata()
       .withNewSpec()
         .withClusterIP("None")
-        .withSelector(kubernetesConf.driverLabels().asJava)
+        .withSelector(kubernetesConf.roleSpecificConf.roleLabels().asJava)
         .addNewPort()
           .withName(DRIVER_PORT_NAME)
           .withPort(driverPort)
