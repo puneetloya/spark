@@ -16,6 +16,8 @@
  */
 package org.apache.spark.deploy.k8s.features
 
+import scala.collection.JavaConverters._
+
 import io.fabric8.kubernetes.api.model.{HasMetadata, ServiceBuilder}
 
 import org.apache.spark.deploy.k8s.{KubernetesConf, KubernetesDriverSpecificConf, SparkPod}
@@ -70,7 +72,7 @@ private[spark] class DriverServiceFeatureStep(
         .endMetadata()
       .withNewSpec()
         .withClusterIP("None")
-        .withSelector(kubernetesConf.roleSpecificConf.roleLabels().asJava)
+        .withSelector(kubernetesConf.roleLabels.asJava)
         .addNewPort()
           .withName(DRIVER_PORT_NAME)
           .withPort(driverPort)
