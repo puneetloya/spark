@@ -59,6 +59,7 @@ private[spark] class DriverKubernetesCredentialsFeatureStep(kubernetesConf: Kube
     s"$KUBERNETES_AUTH_DRIVER_CONF_PREFIX.$CLIENT_CERT_FILE_CONF_SUFFIX",
     "Driver client cert file")
 
+  // TODO decide whether or not to apply this step entirely in the caller, i.e. the builder.
   private val shouldMountSecret = oauthTokenBase64.isDefined ||
     caCertDataBase64.isDefined ||
     clientKeyDataBase64.isDefined ||
@@ -73,9 +74,9 @@ private[spark] class DriverKubernetesCredentialsFeatureStep(kubernetesConf: Kube
         pod = driverServiceAccount.map { account =>
           new PodBuilder(pod.pod)
             .editOrNewSpec()
-            .withServiceAccount(account)
-            .withServiceAccountName(account)
-            .endSpec()
+              .withServiceAccount(account)
+              .withServiceAccountName(account)
+              .endSpec()
             .build()
         }.getOrElse(pod.pod))
     } else {
@@ -92,9 +93,9 @@ private[spark] class DriverKubernetesCredentialsFeatureStep(kubernetesConf: Kube
       val driverContainerWithMountedSecretVolume =
         new ContainerBuilder(pod.container)
           .addNewVolumeMount()
-          .withName(DRIVER_CREDENTIALS_SECRET_VOLUME_NAME)
-          .withMountPath(DRIVER_CREDENTIALS_SECRETS_BASE_DIR)
-          .endVolumeMount()
+            .withName(DRIVER_CREDENTIALS_SECRET_VOLUME_NAME)
+            .withMountPath(DRIVER_CREDENTIALS_SECRETS_BASE_DIR)
+            .endVolumeMount()
           .build()
       SparkPod(driverPodWithMountedKubernetesCredentials, driverContainerWithMountedSecretVolume)
     }

@@ -22,14 +22,16 @@ private[spark] class KubernetesDriverBuilder {
 
   def buildFromFeatures(
     kubernetesConf: KubernetesConf[KubernetesDriverSpecificConf]): KubernetesSpec = {
-    val features = Seq(
+    val baseFeatures = Seq(
       new BasicDriverFeatureStep(kubernetesConf),
       new DriverKubernetesCredentialsFeatureStep(kubernetesConf),
-      new DriverServiceFeatureStep(kubernetesConf),
-      new MountSecretsFeatureStep(kubernetesConf))
+      new DriverServiceFeatureStep(kubernetesConf))
+    val allFeatures = if (kubernetesConf.roleSecretNamesToMountPaths.nonEmpty) {
+      baseFeatures ++ Seq(new MountSecretsFeatureStep(kubernetesConf))
+    } else baseFeatures
     var spec = KubernetesSpec.initialSpec(
       kubernetesConf.getSparkConf().getAll.toMap)
-    for (feature <- features) {
+    for (feature <- allFeatures) {
       val configuredPod = feature.configurePod(spec.pod)
       val addedSystemProperties = feature.getAdditionalPodSystemProperties()
       val addedResources = feature.getAdditionalKubernetesResources()

@@ -21,13 +21,13 @@ import org.apache.spark.deploy.k8s.{KubernetesConf, KubernetesExecutorSpecificCo
 private[spark] class KubernetesExecutorBuilder {
 
   def buildFromFeatures(
-    kubernetesConf: KubernetesConf[KubernetesExecutorSpecificConf])
-    : SparkPod = {
-    val features = Seq(
-      new BasicExecutorFeatureStep(kubernetesConf),
-      new MountSecretsFeatureStep(kubernetesConf))
+    kubernetesConf: KubernetesConf[KubernetesExecutorSpecificConf]): SparkPod = {
+    val baseFeatures = Seq(new BasicExecutorFeatureStep(kubernetesConf))
+    val allFeatures = if (kubernetesConf.roleSecretNamesToMountPaths.nonEmpty) {
+      baseFeatures ++ Seq(new MountSecretsFeatureStep(kubernetesConf))
+    } else baseFeatures
     var executorPod = SparkPod.initialPod()
-    for (feature <- features) {
+    for (feature <- allFeatures) {
       executorPod = feature.configurePod(executorPod)
     }
     executorPod
