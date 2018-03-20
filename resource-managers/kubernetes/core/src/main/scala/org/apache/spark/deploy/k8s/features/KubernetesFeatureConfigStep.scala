@@ -20,7 +20,7 @@ import io.fabric8.kubernetes.api.model.HasMetadata
 
 import org.apache.spark.deploy.k8s.SparkPod
 
-private[k8s] trait KubernetesFeatureConfigStep {
+private[spark] trait KubernetesFeatureConfigStep {
   def configurePod(pod: SparkPod): SparkPod
 
   def getAdditionalPodSystemProperties(): Map[String, String]

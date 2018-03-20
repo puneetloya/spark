@@ -16,8 +16,6 @@
  */
 package org.apache.spark.deploy.k8s.features
 
-import scala.collection.JavaConverters._
-
 import io.fabric8.kubernetes.api.model.{HasMetadata, ServiceBuilder}
 
 import org.apache.spark.deploy.k8s.{KubernetesConf, KubernetesDriverSpecificConf, SparkPod}
@@ -25,7 +23,7 @@ import org.apache.spark.deploy.k8s.Constants._
 import org.apache.spark.internal.Logging
 import org.apache.spark.util.{Clock, SystemClock}
 
-private[k8s] class DriverServiceFeatureStep(
+private[spark] class DriverServiceFeatureStep(
   kubernetesConf: KubernetesConf[KubernetesDriverSpecificConf],
   clock: Clock = new SystemClock)
   extends KubernetesFeatureConfigStep with Logging {

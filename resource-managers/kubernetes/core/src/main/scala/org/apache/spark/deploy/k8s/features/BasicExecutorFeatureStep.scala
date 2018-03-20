@@ -29,7 +29,7 @@ import org.apache.spark.rpc.RpcEndpointAddress
 import org.apache.spark.scheduler.cluster.CoarseGrainedSchedulerBackend
 import org.apache.spark.util.Utils
 
-private[k8s] class BasicExecutorFeatureStep(
+private[spark] class BasicExecutorFeatureStep(
   kubernetesConf: KubernetesConf[KubernetesExecutorSpecificConf])
   extends KubernetesFeatureConfigStep {
 

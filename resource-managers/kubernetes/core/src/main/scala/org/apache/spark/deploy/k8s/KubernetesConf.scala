@@ -24,20 +24,20 @@ import org.apache.spark.deploy.k8s.Constants._
 import org.apache.spark.deploy.k8s.submit.{JavaMainAppResource, MainAppResource}
 import org.apache.spark.internal.config.ConfigEntry
 
-private[k8s] sealed trait KubernetesRoleSpecificConf
+private[spark] sealed trait KubernetesRoleSpecificConf
 
-private[k8s] case class KubernetesDriverSpecificConf(
+private[spark] case class KubernetesDriverSpecificConf(
   mainAppResource: Option[MainAppResource],
   mainClass: String,
   appName: String,
   appArgs: Seq[String],
   appId: String) extends KubernetesRoleSpecificConf
 
-private[k8s] case class KubernetesExecutorSpecificConf(
+private[spark] case class KubernetesExecutorSpecificConf(
   executorId: String, driverPod: Pod)
   extends KubernetesRoleSpecificConf
 
-private[k8s] class KubernetesConf[T <: KubernetesRoleSpecificConf](
+private[spark] class KubernetesConf[T <: KubernetesRoleSpecificConf](
   private val sparkConf: SparkConf,
   val roleSpecificConf: T,
   val appResourceNamePrefix: String,
@@ -76,7 +76,7 @@ private[k8s] class KubernetesConf[T <: KubernetesRoleSpecificConf](
 
 }
 
-private[k8s] object KubernetesConf {
+private[spark] object KubernetesConf {
   def createDriverConf(
     sparkConf: SparkConf,
     appName: String,

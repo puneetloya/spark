@@ -14,16 +14,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.spark.deploy.k8s
+package org.apache.spark.deploy.k8s.features
 
-import io.fabric8.kubernetes.api.model.{Container, ContainerBuilder, Pod, PodBuilder}
+import org.apache.spark.deploy.k8s.{KubernetesConf, KubernetesExecutorSpecificConf, SparkPod}
 
-private[k8s] case class SparkPod(pod: Pod, container: Container)
+private[spark] class KubernetesExecutorBuilder {
 
-private[k8s] object SparkPod {
-  def initialPod(): SparkPod = {
-    SparkPod(
-      new PodBuilder().withNewMetadata().endMetadata().withNewSpec().endSpec().build(),
-      new ContainerBuilder().build())
+  def buildFromFeatures(
+    kubernetesConf: KubernetesConf[KubernetesExecutorSpecificConf])
+    : SparkPod = {
+    val features = Seq(
+      new BasicExecutorFeatureStep(kubernetesConf),
+      new MountSecretsFeatureStep(kubernetesConf))
+    var executorPod = SparkPod.initialPod()
+    for (feature <- features) {
+      executorPod = feature.configurePod(executorPod)
+    }
+    executorPod
   }
 }

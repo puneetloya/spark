@@ -28,7 +28,7 @@ import org.apache.spark.deploy.k8s.Constants._
 import org.apache.spark.internal.config._
 import org.apache.spark.launcher.SparkLauncher
 
-private[k8s] class BasicDriverFeatureStep(
+private[spark] class BasicDriverFeatureStep(
   kubernetesConf: KubernetesConf[KubernetesDriverSpecificConf])
   extends KubernetesFeatureConfigStep {
 

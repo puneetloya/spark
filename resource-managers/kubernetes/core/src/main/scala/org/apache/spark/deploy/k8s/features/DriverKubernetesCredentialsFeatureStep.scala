@@ -28,7 +28,7 @@ import org.apache.spark.deploy.k8s.{KubernetesConf, SparkPod}
 import org.apache.spark.deploy.k8s.Config._
 import org.apache.spark.deploy.k8s.Constants._
 
-private[k8s] class DriverKubernetesCredentialsFeatureStep(kubernetesConf: KubernetesConf[_])
+private[spark] class DriverKubernetesCredentialsFeatureStep(kubernetesConf: KubernetesConf[_])
   extends KubernetesFeatureConfigStep {
   // TODO clean up this class, and credentials in general. See also SparkKubernetesClientFactory.
   // We should use a struct to hold all creds-related fields. A lot of the code is very repetitive.
