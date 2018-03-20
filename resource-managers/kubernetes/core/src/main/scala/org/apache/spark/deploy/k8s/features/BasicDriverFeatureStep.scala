@@ -17,6 +17,7 @@
 package org.apache.spark.deploy.k8s.features
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 
 import io.fabric8.kubernetes.api.model.{ContainerBuilder, EnvVarBuilder, EnvVarSourceBuilder, HasMetadata, PodBuilder, QuantityBuilder}
 
@@ -126,11 +127,23 @@ private[k8s] class BasicDriverFeatureStep(
   }
 
   override def getAdditionalPodSystemProperties(): Map[String, String] = {
-    Map(
+    val additionalProps = mutable.Map(
       KUBERNETES_DRIVER_POD_NAME.key -> driverPodName,
       "spark.app.id" -> kubernetesConf.appId,
       KUBERNETES_EXECUTOR_POD_NAME_PREFIX.key -> kubernetesConf.appResourceNamePrefix,
       KUBERNETES_DRIVER_SUBMIT_CHECK.key -> "true")
+
+    val resolvedSparkJars = KubernetesUtils.resolveFileUrisAndPath(
+      kubernetesConf.sparkJars())
+    val resolvedSparkFiles = KubernetesUtils.resolveFileUrisAndPath(
+      kubernetesConf.sparkFiles())
+    if (resolvedSparkJars.nonEmpty) {
+      additionalProps.put("spark.jars", resolvedSparkJars.mkString(","))
+    }
+    if (resolvedSparkFiles.nonEmpty) {
+      additionalProps.put("spark.files", resolvedSparkFiles.mkString(","))
+    }
+    additionalProps.toMap
   }
 
   override def getAdditionalKubernetesResources(): Seq[HasMetadata] = Seq.empty
