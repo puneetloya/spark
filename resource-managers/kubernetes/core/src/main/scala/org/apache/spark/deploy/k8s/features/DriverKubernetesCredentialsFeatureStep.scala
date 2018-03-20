@@ -30,8 +30,8 @@ import org.apache.spark.deploy.k8s.Constants._
 
 private[k8s] class DriverKubernetesCredentialsFeatureStep(kubernetesConf: KubernetesConf[_])
   extends KubernetesFeatureConfigStep {
-  // TODO clean up this class, and credentials in general. We should use a struct to hold all
-  // creds-related fields. A lot of the code is very repetitive.
+  // TODO clean up this class, and credentials in general. See also SparkKubernetesClientFactory.
+  // We should use a struct to hold all creds-related fields. A lot of the code is very repetitive.
 
   private val maybeMountedOAuthTokenFile = kubernetesConf.getOption(
     s"$KUBERNETES_AUTH_DRIVER_MOUNTED_CONF_PREFIX.$OAUTH_TOKEN_FILE_CONF_SUFFIX")

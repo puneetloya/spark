@@ -16,6 +16,8 @@
  */
 package org.apache.spark.deploy.k8s
 
+import io.fabric8.kubernetes.api.model.Pod
+
 import org.apache.spark.SparkConf
 import org.apache.spark.deploy.k8s.Config._
 import org.apache.spark.deploy.k8s.Constants._
@@ -25,7 +27,6 @@ import org.apache.spark.internal.config.ConfigEntry
 private[k8s] sealed trait KubernetesRoleSpecificConf
 
 private[k8s] case class KubernetesDriverSpecificConf(
-  private val sparkConf: SparkConf,
   mainAppResource: Option[MainAppResource],
   mainClass: String,
   appName: String,
@@ -33,9 +34,8 @@ private[k8s] case class KubernetesDriverSpecificConf(
   appId: String) extends KubernetesRoleSpecificConf
 
 private[k8s] case class KubernetesExecutorSpecificConf(
-  private val sparkConf: SparkConf,
-  private val appId: String,
-  private val executorId: String) extends KubernetesRoleSpecificConf
+  executorId: String, driverPod: Pod)
+  extends KubernetesRoleSpecificConf
 
 private[k8s] class KubernetesConf[T <: KubernetesRoleSpecificConf](
   private val sparkConf: SparkConf,
@@ -69,6 +69,8 @@ private[k8s] class KubernetesConf[T <: KubernetesRoleSpecificConf](
   def getSparkConf(): SparkConf = sparkConf.clone()
 
   def get[T](config: ConfigEntry[T]): T = sparkConf.get(config)
+
+  def get(conf: String, defaultValue: String): String = sparkConf.get(conf, defaultValue)
 
   def getOption(key: String): Option[String] = sparkConf.getOption(key)
 
@@ -113,7 +115,6 @@ private[k8s] object KubernetesConf {
     new KubernetesConf(
       sparkConfWithMainAppJar,
       KubernetesDriverSpecificConf(
-        sparkConfWithMainAppJar,
         mainAppResource,
         appName,
         mainClass,
@@ -129,7 +130,8 @@ private[k8s] object KubernetesConf {
   def createExecutorConf(
     sparkConf: SparkConf,
     executorId: String,
-    appId: String): KubernetesConf[KubernetesExecutorSpecificConf] = {
+    appId: String,
+    driverPod: Pod): KubernetesConf[KubernetesExecutorSpecificConf] = {
     val executorCustomLabels = KubernetesUtils.parsePrefixedKeyValuePairs(
       sparkConf,
       KUBERNETES_EXECUTOR_LABEL_PREFIX)
@@ -153,8 +155,8 @@ private[k8s] object KubernetesConf {
     val executorSecrets =
       KubernetesUtils.parsePrefixedKeyValuePairs(sparkConf, KUBERNETES_EXECUTOR_SECRETS_PREFIX)
     new KubernetesConf(
-      sparkConf,
-      KubernetesExecutorSpecificConf(sparkConf, executorId, appId),
+      sparkConf.clone(),
+      KubernetesExecutorSpecificConf(executorId, driverPod),
       sparkConf.get(KUBERNETES_EXECUTOR_POD_NAME_PREFIX),
       appId,
       executorLabels,
