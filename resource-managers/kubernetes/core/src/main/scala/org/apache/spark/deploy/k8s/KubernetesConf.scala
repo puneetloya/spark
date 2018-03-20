@@ -28,8 +28,7 @@ private[k8s] case class KubernetesDriverSpecificConf(
   mainAppResource: Option[MainAppResource],
   mainClass: String,
   appName: String,
-  appArgs: Seq[String],
-  ) extends KubernetesRoleSpecificConf {
+  appArgs: Seq[String]) extends KubernetesRoleSpecificConf {
   def driverAnnotations(): Map[String, String] = {
     val driverCustomAnnotations = KubernetesUtils.parsePrefixedKeyValuePairs(
       sparkConf, KUBERNETES_DRIVER_ANNOTATION_PREFIX)
