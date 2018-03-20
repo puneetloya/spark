@@ -16,20 +16,13 @@
  */
 package org.apache.spark.deploy.k8s
 
-import org.apache.spark.{SparkConf, SparkException}
+import org.apache.spark.SparkConf
 import org.apache.spark.deploy.k8s.Config._
 import org.apache.spark.deploy.k8s.Constants._
 import org.apache.spark.deploy.k8s.submit.{JavaMainAppResource, MainAppResource}
 import org.apache.spark.internal.config.ConfigEntry
 
-private[k8s] sealed trait KubernetesRoleSpecificConf {
-
-  def roleLabels(): Map[String, String]
-
-  def roleAnnotations(): Map[String, String]
-
-  def roleSecretNamesToMountPaths(): Map[String, String]
-}
+private[k8s] sealed trait KubernetesRoleSpecificConf
 
 private[k8s] case class KubernetesDriverSpecificConf(
   private val sparkConf: SparkConf,
@@ -37,78 +30,21 @@ private[k8s] case class KubernetesDriverSpecificConf(
   mainClass: String,
   appName: String,
   appArgs: Seq[String],
-  appId: String) extends KubernetesRoleSpecificConf {
-
-  override def roleLabels(): Map[String, String] = {
-    val driverCustomLabels = KubernetesUtils.parsePrefixedKeyValuePairs(
-      sparkConf,
-      KUBERNETES_DRIVER_LABEL_PREFIX)
-    require(!driverCustomLabels.contains(SPARK_APP_ID_LABEL), "Label with key " +
-      s"$SPARK_APP_ID_LABEL is not allowed as it is reserved for Spark bookkeeping " +
-      "operations.")
-    require(!driverCustomLabels.contains(SPARK_ROLE_LABEL), "Label with key " +
-      s"$SPARK_ROLE_LABEL is not allowed as it is reserved for Spark bookkeeping " +
-      "operations.")
-    driverCustomLabels ++ Map(
-      SPARK_APP_ID_LABEL -> appId,
-      SPARK_ROLE_LABEL -> SPARK_POD_DRIVER_ROLE)
-  }
-
-  override def roleAnnotations(): Map[String, String] = {
-    val driverCustomAnnotations = KubernetesUtils.parsePrefixedKeyValuePairs(
-      sparkConf, KUBERNETES_DRIVER_ANNOTATION_PREFIX)
-    require(!driverCustomAnnotations.contains(SPARK_APP_NAME_ANNOTATION),
-      s"Annotation with key $SPARK_APP_NAME_ANNOTATION is not allowed as it is reserved for" +
-        " Spark bookkeeping operations.")
-    driverCustomAnnotations ++ Map(SPARK_APP_NAME_ANNOTATION -> appName)
-  }
-
-  override def roleSecretNamesToMountPaths(): Map[String, String] = {
-    KubernetesUtils.parsePrefixedKeyValuePairs(sparkConf, KUBERNETES_DRIVER_SECRETS_PREFIX)
-  }
-}
+  appId: String) extends KubernetesRoleSpecificConf
 
 private[k8s] case class KubernetesExecutorSpecificConf(
   private val sparkConf: SparkConf,
   private val appId: String,
-  private val executorId: String) extends KubernetesRoleSpecificConf {
-
-  override def roleLabels(): Map[String, String] = {
-    val executorLabels = KubernetesUtils.parsePrefixedKeyValuePairs(
-      sparkConf,
-      KUBERNETES_EXECUTOR_LABEL_PREFIX)
-    require(
-      !executorLabels.contains(SPARK_APP_ID_LABEL),
-      s"Custom executor labels cannot contain $SPARK_APP_ID_LABEL as it is reserved for Spark.")
-    require(
-      !executorLabels.contains(SPARK_EXECUTOR_ID_LABEL),
-      s"Custom executor labels cannot contain $SPARK_EXECUTOR_ID_LABEL as it is reserved for" +
-        " Spark.")
-    require(
-      !executorLabels.contains(SPARK_ROLE_LABEL),
-      s"Custom executor labels cannot contain $SPARK_ROLE_LABEL as it is reserved for Spark.")
-    Map(
-      SPARK_EXECUTOR_ID_LABEL -> executorId,
-      SPARK_APP_ID_LABEL -> appId,
-      SPARK_ROLE_LABEL -> SPARK_POD_EXECUTOR_ROLE) ++
-      executorLabels
-  }
-
-  override def roleAnnotations(): Map[String, String] = {
-    KubernetesUtils.parsePrefixedKeyValuePairs(
-      sparkConf, KUBERNETES_EXECUTOR_ANNOTATION_PREFIX)
-  }
-
-  override def roleSecretNamesToMountPaths(): Map[String, String] = {
-    KubernetesUtils.parsePrefixedKeyValuePairs(sparkConf, KUBERNETES_EXECUTOR_SECRETS_PREFIX)
-  }
-}
+  private val executorId: String) extends KubernetesRoleSpecificConf
 
 private[k8s] class KubernetesConf[T <: KubernetesRoleSpecificConf](
-    private val sparkConf: SparkConf,
-    val roleSpecificConf: T,
-    val appResourceNamePrefix: String,
-    val appId: String) {
+  private val sparkConf: SparkConf,
+  val roleSpecificConf: T,
+  val appResourceNamePrefix: String,
+  val appId: String,
+  val roleLabels: Map[String, String],
+  val roleAnnotations: Map[String, String],
+  val roleSecretNamesToMountPaths: Map[String, String]) {
 
   def namespace(): String = sparkConf.get(KUBERNETES_NAMESPACE)
 
@@ -158,6 +94,22 @@ private[k8s] object KubernetesConf {
           sparkConfWithMainAppJar.setJars(previousJars ++ Seq(res))
         }
     }
+    val driverCustomLabels = KubernetesUtils.parsePrefixedKeyValuePairs(
+      sparkConf,
+      KUBERNETES_DRIVER_LABEL_PREFIX)
+    require(!driverCustomLabels.contains(SPARK_APP_ID_LABEL), "Label with key " +
+      s"$SPARK_APP_ID_LABEL is not allowed as it is reserved for Spark bookkeeping " +
+      "operations.")
+    require(!driverCustomLabels.contains(SPARK_ROLE_LABEL), "Label with key " +
+      s"$SPARK_ROLE_LABEL is not allowed as it is reserved for Spark bookkeeping " +
+      "operations.")
+    val driverLabels = driverCustomLabels ++ Map(
+      SPARK_APP_ID_LABEL -> appId,
+      SPARK_ROLE_LABEL -> SPARK_POD_DRIVER_ROLE)
+    val driverAnnotations =
+      KubernetesUtils.parsePrefixedKeyValuePairs(sparkConf, KUBERNETES_DRIVER_ANNOTATION_PREFIX)
+    val driverSecretNamesToMountPaths =
+      KubernetesUtils.parsePrefixedKeyValuePairs(sparkConf, KUBERNETES_DRIVER_SECRETS_PREFIX)
     new KubernetesConf(
       sparkConfWithMainAppJar,
       KubernetesDriverSpecificConf(
@@ -168,18 +120,45 @@ private[k8s] object KubernetesConf {
         appArgs,
         appId),
       appResourceNamePrefix,
-      appId)
+      appId,
+      driverLabels,
+      driverAnnotations,
+      driverSecretNamesToMountPaths)
   }
 
   def createExecutorConf(
     sparkConf: SparkConf,
     executorId: String,
-    appResourceNamePrefix: String,
     appId: String): KubernetesConf[KubernetesExecutorSpecificConf] = {
+    val executorCustomLabels = KubernetesUtils.parsePrefixedKeyValuePairs(
+      sparkConf,
+      KUBERNETES_EXECUTOR_LABEL_PREFIX)
+    require(
+      !executorCustomLabels.contains(SPARK_APP_ID_LABEL),
+      s"Custom executor labels cannot contain $SPARK_APP_ID_LABEL as it is reserved for Spark.")
+    require(
+      !executorCustomLabels.contains(SPARK_EXECUTOR_ID_LABEL),
+      s"Custom executor labels cannot contain $SPARK_EXECUTOR_ID_LABEL as it is reserved for" +
+        " Spark.")
+    require(
+      !executorCustomLabels.contains(SPARK_ROLE_LABEL),
+      s"Custom executor labels cannot contain $SPARK_ROLE_LABEL as it is reserved for Spark.")
+    val executorLabels = Map(
+      SPARK_EXECUTOR_ID_LABEL -> executorId,
+      SPARK_APP_ID_LABEL -> appId,
+      SPARK_ROLE_LABEL -> SPARK_POD_EXECUTOR_ROLE) ++
+      executorCustomLabels
+    val executorAnnotations =
+      KubernetesUtils.parsePrefixedKeyValuePairs(sparkConf, KUBERNETES_EXECUTOR_ANNOTATION_PREFIX)
+    val executorSecrets =
+      KubernetesUtils.parsePrefixedKeyValuePairs(sparkConf, KUBERNETES_EXECUTOR_SECRETS_PREFIX)
     new KubernetesConf(
       sparkConf,
       KubernetesExecutorSpecificConf(sparkConf, executorId, appId),
-      appResourceNamePrefix,
-      appId)
+      sparkConf.get(KUBERNETES_EXECUTOR_POD_NAME_PREFIX),
+      appId,
+      executorLabels,
+      executorAnnotations,
+      executorSecrets)
   }
 }

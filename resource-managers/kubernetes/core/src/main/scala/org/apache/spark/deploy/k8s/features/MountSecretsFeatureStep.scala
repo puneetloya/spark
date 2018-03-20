@@ -25,8 +25,7 @@ private[k8s] class MountSecretsFeatureStep(
   extends KubernetesFeatureConfigStep {
   override def configurePod(pod: SparkPod): SparkPod = {
     val addedVolumes = kubernetesConf
-      .roleSpecificConf
-      .roleSecretNamesToMountPaths()
+      .roleSecretNamesToMountPaths
       .keys
       .map(secretName =>
         new VolumeBuilder()
@@ -41,8 +40,7 @@ private[k8s] class MountSecretsFeatureStep(
         .endSpec()
       .build()
     val addedVolumeMounts = kubernetesConf
-      .roleSpecificConf
-      .roleSecretNamesToMountPaths()
+      .roleSecretNamesToMountPaths
       .map {
         case (secretName, mountPath) =>
           new VolumeMountBuilder()

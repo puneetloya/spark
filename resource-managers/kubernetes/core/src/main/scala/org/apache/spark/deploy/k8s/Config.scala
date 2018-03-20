@@ -141,11 +141,6 @@ private[spark] object Config extends Logging {
       .checkValue(interval => interval > 0, s"Logging interval must be a positive time value.")
       .createWithDefaultString("1s")
 
-  val KUBERNETES_RESOURCE_NAME_PREFIX =
-    ConfigBuilder("spark.kubernetes.internal.resourceNamePrefix")
-      .stringConf
-      .createOptional
-
   val KUBERNETES_AUTH_SUBMISSION_CONF_PREFIX =
     "spark.kubernetes.authenticate.submission"
 
