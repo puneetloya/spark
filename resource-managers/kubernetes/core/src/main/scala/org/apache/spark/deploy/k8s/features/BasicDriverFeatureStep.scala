@@ -36,8 +36,6 @@ private[spark] class BasicDriverFeatureStep(
     .get(KUBERNETES_DRIVER_POD_NAME)
     .getOrElse(s"${kubernetesConf.appResourceNamePrefix}-driver")
 
-  private val driverExtraClasspath = kubernetesConf.get(DRIVER_CLASS_PATH)
-
   private val driverContainerImage = kubernetesConf
     .get(DRIVER_CONTAINER_IMAGE)
     .getOrElse(throw new SparkException("Must specify the driver container image"))
@@ -54,13 +52,6 @@ private[spark] class BasicDriverFeatureStep(
   private val driverMemoryWithOverheadMiB = driverMemoryMiB + memoryOverheadMiB
 
   override def configurePod(pod: SparkPod): SparkPod = {
-    val driverExtraClasspathEnv = driverExtraClasspath.map { classPath =>
-      new EnvVarBuilder()
-        .withName(ENV_CLASSPATH)
-        .withValue(classPath)
-        .build()
-    }
-
     val driverCustomEnvs = kubernetesConf.driverCustomEnvs()
       .map { env =>
         new EnvVarBuilder()
@@ -87,7 +78,6 @@ private[spark] class BasicDriverFeatureStep(
       .withImage(driverContainerImage)
       .withImagePullPolicy(kubernetesConf.imagePullPolicy())
       .addAllToEnv(driverCustomEnvs.asJava)
-      .addToEnv(driverExtraClasspathEnv.toSeq: _*)
       .addNewEnv()
         .withName(ENV_DRIVER_BIND_ADDRESS)
         .withValueFrom(new EnvVarSourceBuilder()

@@ -18,11 +18,12 @@ package org.apache.spark.scheduler.cluster.k8s
 
 import java.util.concurrent.{ExecutorService, ScheduledExecutorService, TimeUnit}
 
-import io.fabric8.kubernetes.api.model.{DoneablePod, Pod, PodBuilder, PodList}
+import io.fabric8.kubernetes.api.model.{ContainerBuilder, DoneablePod, Pod, PodBuilder, PodList}
 import io.fabric8.kubernetes.client.{KubernetesClient, Watch, Watcher}
 import io.fabric8.kubernetes.client.Watcher.Action
 import io.fabric8.kubernetes.client.dsl.{FilterWatchListDeletable, MixedOperation, NonNamespaceOperation, PodResource}
-import org.mockito.{AdditionalAnswers, ArgumentCaptor, Mock, MockitoAnnotations}
+import org.hamcrest.{BaseMatcher, Description, Matcher}
+import org.mockito.{AdditionalAnswers, ArgumentCaptor, ArgumentMatcher, Matchers, Mock, Mockito, MockitoAnnotations}
 import org.mockito.Matchers.{any, eq => mockitoEq}
 import org.mockito.Mockito.{doNothing, never, times, verify, when}
 import org.scalatest.BeforeAndAfter
@@ -33,6 +34,8 @@ import scala.concurrent.Future
 import org.apache.spark.{SparkConf, SparkContext, SparkFunSuite}
 import org.apache.spark.deploy.k8s.Config._
 import org.apache.spark.deploy.k8s.Constants._
+import org.apache.spark.deploy.k8s.{KubernetesConf, KubernetesExecutorSpecificConf, SparkPod}
+import org.apache.spark.deploy.k8s.features.KubernetesExecutorBuilder
 import org.apache.spark.rpc._
 import org.apache.spark.scheduler.{ExecutorExited, LiveListenerBus, SlaveLost, TaskSchedulerImpl}
 import org.apache.spark.scheduler.cluster.CoarseGrainedClusterMessages.{RegisterExecutor, RemoveExecutor}
@@ -94,7 +97,7 @@ class KubernetesClusterSchedulerBackendSuite extends SparkFunSuite with BeforeAn
   private var requestExecutorsService: ExecutorService = _
 
   @Mock
-  private var executorPodFactory: ExecutorPodFactory = _
+  private var executorBuilder: KubernetesExecutorBuilder = _
 
   @Mock
   private var kubernetesClient: KubernetesClient = _
@@ -399,7 +402,7 @@ class KubernetesClusterSchedulerBackendSuite extends SparkFunSuite with BeforeAn
     new KubernetesClusterSchedulerBackend(
       taskSchedulerImpl,
       rpcEnv,
-      executorPodFactory,
+      executorBuilder,
       kubernetesClient,
       allocatorExecutor,
       requestExecutorsService) {
@@ -428,13 +431,18 @@ class KubernetesClusterSchedulerBackendSuite extends SparkFunSuite with BeforeAn
         .addToLabels(SPARK_EXECUTOR_ID_LABEL, executorId.toString)
         .endMetadata()
       .build()
-    when(executorPodFactory.createExecutorPod(
-      executorId.toString,
-      APP_ID,
-      DRIVER_URL,
-      sparkConf.getExecutorEnv,
-      driverPod,
-      Map.empty)).thenReturn(resolvedPod)
+    val resolvedContainer = new ContainerBuilder().build()
+    when(executorBuilder.buildFromFeatures(Matchers.argThat(
+      new BaseMatcher[KubernetesConf[KubernetesExecutorSpecificConf]] {
+        override def matches(argument: scala.Any)
+          : Boolean = {
+          argument.isInstanceOf[KubernetesConf[KubernetesExecutorSpecificConf]] &&
+            argument.asInstanceOf[KubernetesConf[KubernetesExecutorSpecificConf]]
+              .roleSpecificConf.executorId == executorId.toString
+        }
+
+        override def describeTo(description: Description): Unit = {}
+      }))).thenReturn(SparkPod(resolvedPod, resolvedContainer))
     resolvedPod
   }
 }

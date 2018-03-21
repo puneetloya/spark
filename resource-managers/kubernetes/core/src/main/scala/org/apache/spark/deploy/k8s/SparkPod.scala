@@ -18,9 +18,9 @@ package org.apache.spark.deploy.k8s
 
 import io.fabric8.kubernetes.api.model.{Container, ContainerBuilder, Pod, PodBuilder}
 
-private[k8s] case class SparkPod(pod: Pod, container: Container)
+private[spark] case class SparkPod(pod: Pod, container: Container)
 
-private[k8s] object SparkPod {
+private[spark] object SparkPod {
   def initialPod(): SparkPod = {
     SparkPod(
       new PodBuilder().withNewMetadata().endMetadata().withNewSpec().endSpec().build(),

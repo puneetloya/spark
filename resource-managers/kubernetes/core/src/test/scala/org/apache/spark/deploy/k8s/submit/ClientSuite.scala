@@ -35,6 +35,7 @@ import org.apache.spark.deploy.k8s.submit.steps.DriverConfigurationStep
 
 class ClientSuite extends SparkFunSuite with BeforeAndAfter {
 
+  /*
   private val DRIVER_POD_UID = "pod-id"
   private val DRIVER_POD_API_VERSION = "v1"
   private val DRIVER_POD_KIND = "pod"
@@ -223,4 +224,5 @@ private object SecondTestConfigurationStep extends DriverConfigurationStep {
       driverSparkConf = resolvedSparkConf,
       driverContainer = modifiedContainer)
   }
+  */
 }
