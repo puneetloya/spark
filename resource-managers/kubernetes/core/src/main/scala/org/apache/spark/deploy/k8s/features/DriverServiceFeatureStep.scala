@@ -50,9 +50,9 @@ private[spark] class DriverServiceFeatureStep(
     shorterServiceName
   }
 
-  private val driverPort = kubernetesConf.getSparkConf().getInt(
+  private val driverPort = kubernetesConf.sparkConf.getInt(
     "spark.driver.port", DEFAULT_DRIVER_PORT)
-  private val driverBlockManagerPort = kubernetesConf.getSparkConf().getInt(
+  private val driverBlockManagerPort = kubernetesConf.sparkConf.getInt(
     org.apache.spark.internal.config.DRIVER_BLOCK_MANAGER_PORT.key, DEFAULT_BLOCKMANAGER_PORT)
 
   override def configurePod(pod: SparkPod): SparkPod = pod
@@ -89,9 +89,9 @@ private[spark] class DriverServiceFeatureStep(
   }
 }
 
-private[k8s] object DriverServiceFeatureStep {
-  private val DRIVER_BIND_ADDRESS_KEY = org.apache.spark.internal.config.DRIVER_BIND_ADDRESS.key
-  private val DRIVER_HOST_KEY = org.apache.spark.internal.config.DRIVER_HOST_ADDRESS.key
-  private val DRIVER_SVC_POSTFIX = "-driver-svc"
-  private val MAX_SERVICE_NAME_LENGTH = 63
+private[spark] object DriverServiceFeatureStep {
+  val DRIVER_BIND_ADDRESS_KEY = org.apache.spark.internal.config.DRIVER_BIND_ADDRESS.key
+  val DRIVER_HOST_KEY = org.apache.spark.internal.config.DRIVER_HOST_ADDRESS.key
+  val DRIVER_SVC_POSTFIX = "-driver-svc"
+  val MAX_SERVICE_NAME_LENGTH = 63
 }

@@ -57,8 +57,7 @@ class BasicDriverFeatureStepSuite extends SparkFunSuite {
         None,
         APP_NAME,
         MAIN_CLASS,
-        APP_ARGS,
-        APP_ID),
+        APP_ARGS),
       RESOURCE_NAME_PREFIX,
       APP_ID,
       DRIVER_LABELS,
@@ -101,12 +100,12 @@ class BasicDriverFeatureStepSuite extends SparkFunSuite {
     assert(driverPodMetadata.getAnnotations.asScala === DRIVER_ANNOTATIONS)
     assert(configuredPod.pod.getSpec.getRestartPolicy === "Never")
 
-//    val expectedSparkConf = Map(
-//      KUBERNETES_DRIVER_POD_NAME.key -> "spark-driver-pod",
-//      "spark.app.id" -> APP_ID,
-//      KUBERNETES_EXECUTOR_POD_NAME_PREFIX.key -> RESOURCE_NAME_PREFIX,
-//      "spark.kubernetes.submitInDriver" -> "true")
-//    assert(resolvedSparkConf === expectedSparkConf)
+    val expectedSparkConf = Map(
+      KUBERNETES_DRIVER_POD_NAME.key -> "spark-driver-pod",
+      "spark.app.id" -> APP_ID,
+      KUBERNETES_EXECUTOR_POD_NAME_PREFIX.key -> RESOURCE_NAME_PREFIX,
+      "spark.kubernetes.submitInDriver" -> "true")
+    assert(featureStep.getAdditionalPodSystemProperties() === expectedSparkConf)
   }
 
   test("Additional system properties resolve jars and set cluster-mode confs.") {
@@ -123,8 +122,7 @@ class BasicDriverFeatureStepSuite extends SparkFunSuite {
         None,
         APP_NAME,
         MAIN_CLASS,
-        APP_ARGS,
-        APP_ID),
+        APP_ARGS),
       RESOURCE_NAME_PREFIX,
       APP_ID,
       DRIVER_LABELS,

@@ -16,7 +16,7 @@
  */
 package org.apache.spark.deploy.k8s
 
-import io.fabric8.kubernetes.api.model.{ContainerBuilder, HasMetadata, PodBuilder}
+import io.fabric8.kubernetes.api.model.HasMetadata
 
 private[k8s] case class KubernetesSpec(
   pod: SparkPod,

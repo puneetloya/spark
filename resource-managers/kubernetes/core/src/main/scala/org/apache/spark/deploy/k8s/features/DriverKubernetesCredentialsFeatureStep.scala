@@ -119,23 +119,23 @@ private[spark] class DriverKubernetesCredentialsFeatureStep(kubernetesConf: Kube
       caCertDataBase64,
       DRIVER_CREDENTIALS_CA_CERT_PATH)
 
-    val redactedTokens = kubernetesConf.getSparkConf().getAll
-      .filter(_._1.endsWith(OAUTH_TOKEN_FILE_CONF_SUFFIX))
+    val redactedTokens = kubernetesConf.sparkConf.getAll
+      .filter(_._1.endsWith(OAUTH_TOKEN_CONF_SUFFIX))
       .toMap
-      .mapValues( _ => "<present_but_redacted")
+      .mapValues( _ => "<present_but_redacted>")
     redactedTokens ++
       resolvedMountedCaCertFile.map(file =>
         Map(
           s"$KUBERNETES_AUTH_DRIVER_MOUNTED_CONF_PREFIX.$CA_CERT_FILE_CONF_SUFFIX" ->
-          file)).getOrElse(Map.empty)
+          file)).getOrElse(Map.empty) ++
       resolvedMountedClientKeyFile.map(file =>
         Map(
           s"$KUBERNETES_AUTH_DRIVER_MOUNTED_CONF_PREFIX.$CLIENT_KEY_FILE_CONF_SUFFIX" ->
-          file)).getOrElse(Map.empty)
+          file)).getOrElse(Map.empty) ++
       resolvedMountedClientCertFile.map(file =>
         Map(
           s"$KUBERNETES_AUTH_DRIVER_MOUNTED_CONF_PREFIX.$CLIENT_CERT_FILE_CONF_SUFFIX" ->
-          file)).getOrElse(Map.empty)
+          file)).getOrElse(Map.empty) ++
       resolvedMountedOAuthTokenFile.map(file =>
         Map(
           s"$KUBERNETES_AUTH_DRIVER_MOUNTED_CONF_PREFIX.$OAUTH_TOKEN_FILE_CONF_SUFFIX" ->

@@ -73,7 +73,7 @@ private[spark] class BasicDriverFeatureStep(
       ("cpu", new QuantityBuilder(false).withAmount(limitCores).build())
     }
 
-    val driverContainerWithoutArgs = new ContainerBuilder(pod.container)
+    val driverContainer = new ContainerBuilder(pod.container)
       .withName(DRIVER_CONTAINER_NAME)
       .withImage(driverContainerImage)
       .withImagePullPolicy(kubernetesConf.imagePullPolicy())
@@ -96,11 +96,8 @@ private[spark] class BasicDriverFeatureStep(
       // The user application jar is merged into the spark.jars list and managed through that
       // property, so there is no need to reference it explicitly here.
       .addToArgs(SparkLauncher.NO_RESOURCE)
-
-    val driverContainer = kubernetesConf.roleSpecificConf.appArgs.toList match {
-      case "" :: Nil | Nil => driverContainerWithoutArgs.build()
-      case resolvedAppArgs => driverContainerWithoutArgs.addToArgs(resolvedAppArgs: _*).build()
-    }
+      .addToArgs(kubernetesConf.roleSpecificConf.appArgs: _*)
+      .build()
 
     val driverPod = new PodBuilder(pod.pod)
       .editOrNewMetadata()

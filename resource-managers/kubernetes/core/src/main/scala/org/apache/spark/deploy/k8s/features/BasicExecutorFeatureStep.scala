@@ -39,7 +39,7 @@ private[spark] class BasicExecutorFeatureStep(
     .get(EXECUTOR_CONTAINER_IMAGE)
     .getOrElse(throw new SparkException("Must specify the executor container image"))
   private val blockManagerPort = kubernetesConf
-    .getSparkConf()
+    .sparkConf
     .getInt("spark.blockmanager.port", DEFAULT_BLOCKMANAGER_PORT)
 
   private val executorPodNamePrefix = kubernetesConf.appResourceNamePrefix
@@ -54,14 +54,14 @@ private[spark] class BasicExecutorFeatureStep(
       MEMORY_OVERHEAD_MIN_MIB))
   private val executorMemoryWithOverhead = executorMemoryMiB + memoryOverheadMiB
 
-  private val executorCores = kubernetesConf.getSparkConf().getDouble(
+  private val executorCores = kubernetesConf.sparkConf.getDouble(
     "spark.executor.cores", 1)
   private val executorLimitCores = kubernetesConf.get(KUBERNETES_EXECUTOR_LIMIT_CORES)
   private val driverPod = kubernetesConf.roleSpecificConf.driverPod
 
   private val driverUrl = RpcEndpointAddress(
-    kubernetesConf.getSparkConf().get("spark.driver.host"),
-    kubernetesConf.getSparkConf().getInt("spark.driver.port", DEFAULT_DRIVER_PORT),
+    kubernetesConf.sparkConf.get("spark.driver.host"),
+    kubernetesConf.sparkConf.getInt("spark.driver.port", DEFAULT_DRIVER_PORT),
     CoarseGrainedSchedulerBackend.ENDPOINT_NAME).toString
 
   override def configurePod(pod: SparkPod): SparkPod = {
@@ -104,7 +104,7 @@ private[spark] class BasicExecutorFeatureStep(
       // This is to set the SPARK_CONF_DIR to be /opt/spark/conf
       (ENV_SPARK_CONF_DIR, SPARK_CONF_DIR_INTERNAL),
       (ENV_EXECUTOR_ID, kubernetesConf.roleSpecificConf.executorId)) ++
-      kubernetesConf.getSparkConf().getExecutorEnv)
+      kubernetesConf.sparkConf.getExecutorEnv)
       .map(env => new EnvVarBuilder()
         .withName(env._1)
         .withValue(env._2)

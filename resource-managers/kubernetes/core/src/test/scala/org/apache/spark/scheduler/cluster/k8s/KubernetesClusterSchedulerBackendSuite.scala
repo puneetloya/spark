@@ -50,8 +50,6 @@ class KubernetesClusterSchedulerBackendSuite extends SparkFunSuite with BeforeAn
   private val SPARK_DRIVER_HOST = "localhost"
   private val SPARK_DRIVER_PORT = 7077
   private val POD_ALLOCATION_INTERVAL = "1m"
-  private val DRIVER_URL = RpcEndpointAddress(
-    SPARK_DRIVER_HOST, SPARK_DRIVER_PORT, CoarseGrainedSchedulerBackend.ENDPOINT_NAME).toString
   private val FIRST_EXECUTOR_POD = new PodBuilder()
     .withNewMetadata()
       .withName("pod1")
@@ -443,6 +441,10 @@ class KubernetesClusterSchedulerBackendSuite extends SparkFunSuite with BeforeAn
 
         override def describeTo(description: Description): Unit = {}
       }))).thenReturn(SparkPod(resolvedPod, resolvedContainer))
-    resolvedPod
+    new PodBuilder(resolvedPod)
+      .editSpec()
+        .addToContainers(resolvedContainer)
+        .endSpec()
+      .build()
   }
 }

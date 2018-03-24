@@ -97,11 +97,6 @@ private[spark] class Client(
    watcher: LoggingPodStatusWatcher,
    kubernetesResourceNamePrefix: String) extends Logging {
 
-   /**
-    * Run command that initializes a DriverSpec that will be updated after each
-    * DriverConfigurationStep in the sequence that is passed in. The final KubernetesDriverSpec
-    * will be used to build the Driver Container, Driver Pod, and Kubernetes Resources
-    */
   def run(): Unit = {
     val resolvedDriverSpec = builder.buildFromFeatures(kubernetesConf)
     val configMapName = s"$kubernetesResourceNamePrefix-driver-conf-map"

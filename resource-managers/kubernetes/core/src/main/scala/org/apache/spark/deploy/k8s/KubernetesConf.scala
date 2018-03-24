@@ -30,15 +30,14 @@ private[spark] case class KubernetesDriverSpecificConf(
   mainAppResource: Option[MainAppResource],
   mainClass: String,
   appName: String,
-  appArgs: Seq[String],
-  appId: String) extends KubernetesRoleSpecificConf
+  appArgs: Seq[String]) extends KubernetesRoleSpecificConf
 
 private[spark] case class KubernetesExecutorSpecificConf(
   executorId: String, driverPod: Pod)
   extends KubernetesRoleSpecificConf
 
 private[spark] class KubernetesConf[T <: KubernetesRoleSpecificConf](
-  private val sparkConf: SparkConf,
+  val sparkConf: SparkConf,
   val roleSpecificConf: T,
   val appResourceNamePrefix: String,
   val appId: String,
@@ -66,7 +65,7 @@ private[spark] class KubernetesConf[T <: KubernetesRoleSpecificConf](
   def nodeSelector(): Map[String, String] =
     KubernetesUtils.parsePrefixedKeyValuePairs(sparkConf, KUBERNETES_NODE_SELECTOR_PREFIX)
 
-  def getSparkConf(): SparkConf = sparkConf.clone()
+  def getSparkConf(): SparkConf = sparkConf
 
   def get[T](config: ConfigEntry[T]): T = sparkConf.get(config)
 
@@ -114,12 +113,7 @@ private[spark] object KubernetesConf {
       KubernetesUtils.parsePrefixedKeyValuePairs(sparkConf, KUBERNETES_DRIVER_SECRETS_PREFIX)
     new KubernetesConf(
       sparkConfWithMainAppJar,
-      KubernetesDriverSpecificConf(
-        mainAppResource,
-        appName,
-        mainClass,
-        appArgs,
-        appId),
+      KubernetesDriverSpecificConf(mainAppResource, appName, mainClass, appArgs),
       appResourceNamePrefix,
       appId,
       driverLabels,
